@@ -199,6 +199,7 @@ const App: React.FC = () => {
   const [editingValue, setEditingValue] = useState('');
 
   const aiImageInputRef = useRef<HTMLInputElement>(null);
+  const aiCameraInputRef = useRef<HTMLInputElement>(null);
   const editImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -790,7 +791,11 @@ const App: React.FC = () => {
           <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 relative animate-slide-up">
             <button onClick={() => setIsAIModalOpen(false)} className="absolute right-8 top-8 text-2xl text-gray-300">×</button>
             <h2 className="text-xl font-black mb-6">✨ AI 智慧解析</h2>
+            
+            {/* 隱藏的輸入項 */}
             <input type="file" accept="image/*" ref={aiImageInputRef} className="hidden" onChange={e => onImageSelected(e, 'ai')} />
+            <input type="file" accept="image/*" capture="environment" ref={aiCameraInputRef} className="hidden" onChange={e => onImageSelected(e, 'ai')} />
+            
             <div className="space-y-4">
               <textarea 
                 value={aiInput} 
@@ -803,17 +808,28 @@ const App: React.FC = () => {
                 disabled={!isOnline || isParsing}
                 className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold active-push ${(!isOnline || isParsing) ? 'opacity-50' : ''}`}
               >
-                {isParsing ? '解析中...' : '開始解析'}
+                {isParsing ? '解析中...' : '開始文字解析'}
               </button>
-              <button 
-                onClick={() => aiImageInputRef.current?.click()} 
-                disabled={!isOnline}
-                className="w-full py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push disabled:opacity-50"
-              >
-                <span>📷</span> 拍照或上傳食譜
-              </button>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => aiCameraInputRef.current?.click()} 
+                  disabled={!isOnline}
+                  className="py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push disabled:opacity-50"
+                >
+                  <span>📸</span> 拍照辨識
+                </button>
+                <button 
+                  onClick={() => aiImageInputRef.current?.click()} 
+                  disabled={!isOnline}
+                  className="py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push disabled:opacity-50"
+                >
+                  <span>🖼️</span> 相簿上傳
+                </button>
+              </div>
+              
               <p className="text-[10px] text-gray-400 text-center font-bold uppercase tracking-widest mt-2">
-                直接拍攝完整食譜，AI 將自動辨識內容
+                直接拍攝或選取食譜照片，AI 將自動辨識內容
               </p>
             </div>
           </div>
