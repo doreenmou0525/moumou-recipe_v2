@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Copy of 牟牟的食譜帳 - Mou Mou's Recipe Journal",
+  "description": "A Japanese-style 'Techo' (hand-drawn journal) recipe organizer with AI-powered URL parsing and categorization.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

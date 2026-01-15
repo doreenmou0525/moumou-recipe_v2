@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>牟牟的食譜帳</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#fcfaf2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --paper-bg: #fcfaf2;
+            --accent-primary: #d97706;
+            --text-main: #4b3f35;
+            --shadow-soft: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02);
+            --shadow-intense: 0 20px 40px -10px rgba(124, 111, 100, 0.15);
+            
+            /* Category Theme Colors */
+            --color-west: #8ba88e;
+            --color-east: #bc6c25;
+            --color-soup: #dda15e;
+            --color-sweet: #b07d62;
+            --color-other: #606c38;
+            --color-all: #5d534a;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f7f5f0;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .journal-container {
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: var(--paper-bg);
+            box-shadow: 0 0 100px rgba(0,0,0,0.03);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .modern-card {
+            background: white;
+            border-radius: 2rem;
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+        }
+        .modern-card:hover {
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: var(--shadow-intense);
+        }
+
+        .writing-mode-vertical {
+            writing-mode: vertical-rl;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .active-push:active {
+            transform: scale(0.95);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Dynamic Category Tab Classes */
+        .tab-west { background-color: var(--color-west); }
+        .tab-east { background-color: var(--color-east); }
+        .tab-soup { background-color: var(--color-soup); }
+        .tab-sweet { background-color: var(--color-sweet); }
+        .tab-other { background-color: var(--color-other); }
+        .tab-all { background-color: var(--color-all); }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+    "gun": "https://esm.sh/gun@0.2020.1239"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('SW registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
