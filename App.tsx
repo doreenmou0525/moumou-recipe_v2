@@ -125,7 +125,7 @@ const ImageCropper = ({ src, onCancel, onConfirm }: { src: string, onCancel: () 
   return (
     <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center p-6 backdrop-blur-md animate-fade-in">
       <div className="w-full max-w-sm bg-white rounded-[3rem] p-8 flex flex-col gap-6 shadow-2xl">
-        <h3 className="text-xl font-black text-center text-gray-800">🖼️ 調整照片範圍</h3>
+        <h3 className="text-xl font-black text-center text-gray-800">🖼️ 調整封面範圍</h3>
         <div 
           ref={containerRef}
           className="w-full aspect-square bg-gray-100 rounded-3xl overflow-hidden relative cursor-move touch-none border-2 border-gray-100"
@@ -194,8 +194,7 @@ const App: React.FC = () => {
   const kitchenNode = useRef<any>(null);
 
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
-  const [croppingTarget, setCroppingTarget] = useState<'ai' | 'cover' | null>(null);
-  const [croppingMimeType, setCroppingMimeType] = useState('image/jpeg');
+  const [croppingTarget, setCroppingTarget] = useState<'cover' | null>(null);
   const [editingFridgeId, setEditingFridgeId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
@@ -438,38 +437,46 @@ const App: React.FC = () => {
   const onImageSelected = (e: React.ChangeEvent<HTMLInputElement>, target: 'ai' | 'cover') => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setCroppingImage(event.target?.result as string);
-      setCroppingTarget(target);
-      setCroppingMimeType(file.type);
-    };
-    reader.readAsDataURL(file);
+
+    if (target === 'ai') {
+      // AI 辨識：直接讀取完整檔案，不經裁切
+      setIsParsing(true);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const fullBase64 = event.target?.result as string;
+        const base64Data = fullBase64.split(',')[1];
+        try {
+          const parsed = await parseRecipeFromImage(base64Data, file.type);
+          const newRecipe = { ...parsed, id: Date.now(), isFavorite: false, image: fullBase64 };
+          setRecipes(prev => [...prev, newRecipe]);
+          if (kitchenId && kitchenNode.current) {
+            kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
+          }
+          setIsAIModalOpen(false);
+          setSelectedRecipe(newRecipe);
+        } catch (err) {
+          alert('照片辨識失敗，請換一張清晰的照片試試看！');
+        } finally {
+          setIsParsing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // 封面圖片：保留裁切步驟，確保 UI 美觀
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCroppingImage(event.target?.result as string);
+        setCroppingTarget('cover');
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = '';
   };
 
-  const handleCropperConfirm = async (croppedBase64: string) => {
-    const target = croppingTarget;
+  const handleCropperConfirm = (croppedBase64: string) => {
     setCroppingImage(null);
     setCroppingTarget(null);
-    if (target === 'ai') {
-      setIsParsing(true);
-      try {
-        const base64Data = croppedBase64.split(',')[1];
-        const parsed = await parseRecipeFromImage(base64Data, croppingMimeType);
-        const newRecipe = { ...parsed, id: Date.now(), isFavorite: false, image: croppedBase64 };
-        setRecipes(prev => [...prev, newRecipe]);
-        
-        if (kitchenId && kitchenNode.current) {
-          kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
-        }
-
-        setIsAIModalOpen(false);
-        setSelectedRecipe(newRecipe);
-      } catch (err) { alert('照片辨識失敗，請換一張試試看！'); } finally { setIsParsing(false); }
-    } else if (target === 'cover') {
-      setFormData({ ...formData, image: croppedBase64 });
-    }
+    setFormData({ ...formData, image: croppedBase64 });
   };
 
   const [formData, setFormData] = useState<Partial<Recipe>>({
@@ -505,14 +512,14 @@ const App: React.FC = () => {
         </div>
         <div className="flex flex-col items-center text-center cursor-pointer flex-1 px-4" onClick={() => { setCurrentPage(Page.Home); setSelectedCategory('目錄'); setSelectedRecipe(null); }}>
           <h1 className="text-lg font-black text-[#5d534a] tracking-[0.2em] leading-tight">牟牟的食譜帳</h1>
-          <span className="text-[8px] font-bold text-amber-600/60 tracking-widest uppercase text-center">MOU CHEF'S COOKBOOK</span>
+          <span className="text-[8px] font-bold text-amber-600/60 tracking-widest uppercase text-center">MOU CHES COOKBOOK</span>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setIsSyncModalOpen(true)} className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all">
             <CloudSyncIcon className="w-6 h-6" active={!!kitchenId} syncing={isSyncing} />
           </button>
           <button onClick={() => { setCurrentPage(Page.Fridge); setSelectedRecipe(null); }} className={`w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all ${currentPage === Page.Fridge ? 'text-amber-600 ring-2 ring-amber-500' : 'text-[#5d534a]'}`}><FridgeIconLineArt className="w-6 h-6" /></button>
-          <button onClick={() => { setCurrentPage(Page.Favorites); setSelectedRecipe(null); }} className={`w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all ${currentPage === Page.Favorites ? 'ring-2 ring-red-500' : ''}`}><span className="text-xl">{currentPage === Page.Favorites ? '❤️' : '🤍'}</span></button>
+          <button onClick={() => { setCurrentPage(Page.Favorites); setSelectedRecipe(null); }} className={`w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-100 active-push transition-all ${currentPage === Page.Favorites ? 'ring-2 ring-red-500' : ''}`}><span className="text-xl">{currentPage === Page.Favorites ? '❤️' : '🤍'}</span></button>
         </div>
       </nav>
 
@@ -531,11 +538,11 @@ const App: React.FC = () => {
                 <div className="flex gap-4">
                   <button 
                     onClick={() => setIsAIModalOpen(true)} 
-                    disabled={!isOnline}
-                    className={`flex-1 py-5 bg-[#5d534a] text-white rounded-[1.8rem] shadow-lg font-bold active-push transition-all relative overflow-hidden group ${!isOnline ? 'opacity-40 grayscale' : ''}`}
+                    disabled={!isOnline || isParsing}
+                    className={`flex-1 py-5 bg-[#5d534a] text-white rounded-[1.8rem] shadow-lg font-bold active-push transition-all relative overflow-hidden group ${(!isOnline || isParsing) ? 'opacity-40 grayscale' : ''}`}
                   >
                     {!isOnline && <span className="absolute top-1 right-2 text-[6px] font-black opacity-40">ONLINE ONLY</span>}
-                    ✨ AI 解析
+                    {isParsing ? '解析中...' : '✨ AI 解析'}
                   </button>
                   <button onClick={() => { setFormData({title: '', category: '東式', image: '🍱', ingredients: [], seasonings: [], steps: [], sourceUrl: '', notes: ''}); setCurrentPage(Page.Add); }} className="flex-1 py-5 bg-white border border-gray-100 text-[#5d534a] rounded-[1.8rem] shadow-sm font-bold active-push">+ 手動新增</button>
                 </div>
@@ -630,21 +637,53 @@ const App: React.FC = () => {
                     <option value="東式">🍱 東式料理</option><option value="西式">🍝 西式料理</option><option value="湯品">🥣 溫暖湯品</option><option value="烘焙">🍰 職人烘焙</option><option value="其他">🍴 其他種類</option>
                   </select>
                 </div>
-                <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Recipe Name 名稱</label><input type="text" value={formData.title || ''} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="輸入食譜名稱..." className="w-full bg-gray-50 p-5 rounded-[1.5rem] outline-none font-bold text-xl border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all" /></div>
-                <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Ingredients 主要食材</label><textarea value={Array.isArray(formData.ingredients) ? formData.ingredients.join('\n') : formData.ingredients} onChange={e => setFormData({ ...formData, ingredients: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-32 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="每行一個食材..." /></div>
-                <div className="flex gap-4 pt-4"><button onClick={handleSave} className="flex-2 py-5 px-8 bg-[#5d534a] text-white rounded-[1.5rem] font-bold shadow-xl active-push">保存食譜</button><button onClick={() => setCurrentPage(Page.Home)} className="flex-1 py-5 bg-gray-100 text-gray-500 rounded-[1.5rem] font-bold active-push">取消</button></div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Recipe Name 名稱</label>
+                  <input type="text" value={formData.title || ''} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="輸入食譜名稱..." className="w-full bg-gray-50 p-5 rounded-[1.5rem] outline-none font-bold text-xl border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Source URL 來源網址</label>
+                  <input type="text" value={formData.sourceUrl || ''} onChange={e => setFormData({ ...formData, sourceUrl: e.target.value })} placeholder="貼上食譜來源網址..." className="w-full bg-gray-50 p-5 rounded-[1.5rem] outline-none font-bold text-sm border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Ingredients 🥕 主要食材</label>
+                  <textarea value={Array.isArray(formData.ingredients) ? formData.ingredients.join('\n') : formData.ingredients} onChange={e => setFormData({ ...formData, ingredients: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-32 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="每行一個食材..." />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Seasonings 🧂 調味配方</label>
+                  <textarea value={Array.isArray(formData.seasonings) ? formData.seasonings.join('\n') : formData.seasonings} onChange={e => setFormData({ ...formData, seasonings: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-32 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="每行一個調味料..." />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Steps 👩‍🍳 烹飪步驟</label>
+                  <textarea value={Array.isArray(formData.steps) ? formData.steps.join('\n') : formData.steps} onChange={e => setFormData({ ...formData, steps: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-48 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="每行一個步驟..." />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Notes 📝 心得筆記</label>
+                  <textarea value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-32 outline-none font-medium italic border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="記錄你的美味心得..." />
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button onClick={handleSave} className="flex-2 py-5 px-8 bg-[#5d534a] text-white rounded-[1.5rem] font-bold shadow-xl active-push">保存食譜</button>
+                  <button onClick={() => setCurrentPage(Page.Home)} className="flex-1 py-5 bg-gray-100 text-gray-500 rounded-[1.5rem] font-bold active-push">取消</button>
+                </div>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="fixed right-0 sm:right-[calc(50%-340px)] top-[160px] flex flex-col gap-2 sm:gap-3 z-[60]">
+      <div className="fixed right-0 sm:right-[calc(50%-340px)] top-[160px] flex flex-col gap-2 sm:gap-4 z-[60]">
         {(['目錄', '西式', '東式', '湯品', '烘焙', '其他'] as CategoryType[]).map(cat => {
           const isActive = selectedCategory === cat;
           const themeClass = CATEGORY_COLORS[cat];
           return (
-            <div key={cat} onClick={() => setSelectedCategory(cat)} className={`writing-mode-vertical text-[10px] sm:text-[12px] font-bold py-4 sm:py-5 px-1.5 sm:px-2 rounded-l-2xl sm:rounded-r-3xl cursor-pointer shadow-lg transition-all active-push ${themeClass} ${isActive ? 'scale-105 sm:scale-110 translate-x-0 sm:translate-x-1 text-white ring-2 ring-white/50 z-10' : 'opacity-50 sm:opacity-40 text-white hover:opacity-100'}`} style={{ writingMode: 'vertical-rl' }}>{cat}</div>
+            <div 
+              key={cat} 
+              onClick={() => setSelectedCategory(cat)} 
+              className={`writing-mode-vertical text-[13px] sm:text-[16px] font-black py-5 sm:py-7 px-2.5 sm:px-4 rounded-l-[1.5rem] sm:rounded-l-[2rem] cursor-pointer shadow-xl transition-all active-push ${themeClass} ${isActive ? 'scale-105 sm:scale-115 translate-x-[-4px] sm:translate-x-[-6px] text-white ring-4 ring-white/30 z-10' : 'opacity-60 sm:opacity-40 text-white hover:opacity-100 hover:translate-x-[-2px]'}`} 
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              {cat}
+            </div>
           );
         })}
       </div>
@@ -704,7 +743,26 @@ const App: React.FC = () => {
             <button onClick={() => setIsFridgeAddOpen(false)} className="absolute right-8 top-8 text-2xl text-gray-300">×</button>
             <h2 className="text-xl font-black mb-6">📦 補購物資</h2>
             <div className="space-y-6">
-              <input type="text" value={newFridgeName} onChange={e => setNewFridgeName(e.target.value)} className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="例如：雞蛋、洋蔥..." autoFocus />
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">物資名稱</label>
+                <input type="text" value={newFridgeName} onChange={e => setNewFridgeName(e.target.value)} className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="例如：雞蛋、洋蔥..." autoFocus />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">存放分類</label>
+                <div className="flex gap-2">
+                  {FRIDGE_CATEGORIES.map(cat => (
+                    <button 
+                      key={cat} 
+                      onClick={() => setNewFridgeCat(cat)}
+                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all border-2 ${newFridgeCat === cat ? 'bg-amber-500 text-white border-amber-500' : 'bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100'}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button onClick={handleAddFridgeItem} className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold shadow-lg active-push">加入冰箱</button>
             </div>
           </div>
@@ -726,16 +784,21 @@ const App: React.FC = () => {
               />
               <button 
                 onClick={handleAIParse} 
-                className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold active-push`}
+                disabled={!isOnline || isParsing}
+                className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold active-push ${(!isOnline || isParsing) ? 'opacity-40 grayscale' : ''}`}
               >
-                開始解析
+                {isParsing ? '解析中...' : '開始解析'}
               </button>
               <button 
                 onClick={() => aiImageInputRef.current?.click()} 
-                className="w-full py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push"
+                disabled={!isOnline || isParsing}
+                className="w-full py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push disabled:opacity-50"
               >
-                <span>📷</span> 選擇照片辨識食譜
+                <span>📷</span> 拍照或上傳食譜
               </button>
+              <p className="text-[10px] text-gray-400 text-center font-bold uppercase tracking-widest mt-2">
+                直接拍攝完整食譜，AI 將自動辨識內容
+              </p>
             </div>
           </div>
         </div>
