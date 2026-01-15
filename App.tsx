@@ -539,7 +539,7 @@ const App: React.FC = () => {
                   <button 
                     onClick={() => setIsAIModalOpen(true)} 
                     disabled={!isOnline || isParsing}
-                    className={`flex-1 py-5 bg-[#5d534a] text-white rounded-[1.8rem] shadow-lg font-bold active-push transition-all relative overflow-hidden group ${(!isOnline || isParsing) ? 'opacity-40 grayscale' : ''}`}
+                    className={`flex-1 py-5 bg-[#5d534a] text-white rounded-[1.8rem] shadow-lg font-bold active-push transition-all relative overflow-hidden group ${(!isOnline || isParsing) ? 'opacity-50' : ''}`}
                   >
                     {!isOnline && <span className="absolute top-1 right-2 text-[6px] font-black opacity-40">ONLINE ONLY</span>}
                     {isParsing ? '解析中...' : '✨ AI 解析'}
@@ -627,9 +627,25 @@ const App: React.FC = () => {
                     <div className="w-32 h-32 bg-gray-50 rounded-[2rem] flex items-center justify-center text-6xl shadow-inner border-2 border-gray-100 overflow-hidden">
                       {isDataUrl ? <img src={formData.image} className="w-full h-full object-cover" alt="preview" /> : formData.image || '📖'}
                     </div>
-                    <button onClick={() => editImageInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#5d534a] text-white rounded-full flex items-center justify-center shadow-lg active-push">📷</button>
+                    <button type="button" onClick={() => editImageInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#5d534a] text-white rounded-full flex items-center justify-center shadow-lg active-push">📷</button>
                   </div>
                   <input type="file" accept="image/*" ref={editImageInputRef} className="hidden" onChange={e => onImageSelected(e, 'cover')} />
+                  
+                  {/* 自定義 Icon 輸入欄位 */}
+                  <div className="mt-4 flex flex-col items-center gap-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">輸入封面 Emoji</label>
+                    <div className={`w-12 h-12 flex items-center justify-center rounded-2xl border-2 transition-all overflow-hidden bg-white ${!isDataUrl ? 'border-amber-500 bg-amber-50 shadow-md scale-105' : 'border-dashed border-gray-300 hover:border-amber-200'}`}>
+                      <input 
+                        type="text" 
+                        maxLength={2}
+                        value={!isDataUrl ? (formData.image || '') : ''} 
+                        onChange={e => setFormData({ ...formData, image: e.target.value })}
+                        className="w-full h-full bg-transparent text-center text-2xl font-bold outline-none placeholder:text-gray-300"
+                        placeholder="🔍"
+                      />
+                    </div>
+                    <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">輸入一個 Emoji 作為封面</p>
+                  </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Category 分類</label>
@@ -785,7 +801,7 @@ const App: React.FC = () => {
               <button 
                 onClick={handleAIParse} 
                 disabled={!isOnline || isParsing}
-                className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold active-push ${(!isOnline || isParsing) ? 'opacity-40 grayscale' : ''}`}
+                className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold active-push ${(!isOnline || isParsing) ? 'opacity-50' : ''}`}
               >
                 {isParsing ? '解析中...' : '開始解析'}
               </button>
