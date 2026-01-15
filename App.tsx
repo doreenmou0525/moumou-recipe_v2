@@ -807,7 +807,7 @@ const App: React.FC = () => {
               </button>
               <button 
                 onClick={() => aiImageInputRef.current?.click()} 
-                disabled={!isOnline || isParsing}
+                disabled={!isOnline}
                 className="w-full py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push disabled:opacity-50"
               >
                 <span>📷</span> 拍照或上傳食譜
