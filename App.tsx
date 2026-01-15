@@ -7,19 +7,25 @@ import RecipeCard from './components/RecipeCard.tsx';
 import RecipeDetail from './components/RecipeDetail.tsx';
 import { parseRecipeWithAI, parseRecipeFromImage } from './services/geminiService.ts';
 
-// Initialize Gun with public relay peers
-const gun = Gun([
-  'https://gun-manhattan.herokuapp.com/gun',
-  'https://relay.pear.social/gun'
-]);
+// 初始化 Gun.js，使用更多穩定的公用節點
+const gun = Gun({
+  peers: [
+    'https://gun-manhattan.herokuapp.com/gun',
+    'https://relay.pear.social/gun',
+    'https://gun-server.herokuapp.com/gun',
+    'https://gundb-relay.onrender.com/gun',
+    'https://gun-ams1.marda.no/gun'
+  ],
+  localStorage: false // 禁用 Gun 自帶的 localStorage，由我們手動控制以獲得更好的效能
+});
 
 const ITEMS_PER_PAGE = 10;
 const FRIDGE_CATEGORIES: FridgeCategory[] = ['食材', '調味料', '常溫區'];
 
-const CloudSyncIcon = ({ className, active }: { className?: string, active?: boolean }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${className} ${active ? 'text-blue-500' : 'text-gray-300'}`}>
+const CloudSyncIcon = ({ className, active, syncing }: { className?: string, active?: boolean, syncing?: boolean }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${className} ${active ? 'text-blue-500' : 'text-gray-300'} ${syncing ? 'animate-spin' : ''}`}>
     <path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2.3-1.8-4.2-4.1-4.5C17.4 6.7 14.5 4 11 4 8.2 4 5.8 5.6 4.6 8 2.3 8.8 1 11.2 1 13.5 1 16.5 3.5 19 6.5 19h11z" />
-    {active && <path d="M9 13l2 2 4-4" stroke="currentColor" strokeWidth="2" />}
+    {active && !syncing && <path d="M9 13l2 2 4-4" stroke="currentColor" strokeWidth="2" />}
   </svg>
 );
 
@@ -190,6 +196,8 @@ const App: React.FC = () => {
   const [kitchenId, setKitchenId] = useState<string>(() => localStorage.getItem('mou_kitchen_id') || '');
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [syncInput, setSyncInput] = useState('');
+  const [isGunConnected, setIsGunConnected] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const kitchenNode = useRef<any>(null);
 
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
@@ -206,11 +214,20 @@ const App: React.FC = () => {
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
+    // 偵測 Gun.js 節點連線狀態
+    const interval = setInterval(() => {
+       // Gun 不提供直接的連線狀態 API，但我們可以檢查內部連線
+       // 簡單假設：如果有網路且 kitchenId 已設定，通常會嘗試連線
+       setIsGunConnected(navigator.onLine && !!kitchenId);
+    }, 5000);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
     };
-  }, []);
+  }, [kitchenId]);
 
   // Initialize Gun listeners if kitchenId exists
   useEffect(() => {
@@ -223,11 +240,14 @@ const App: React.FC = () => {
     const cleanId = id.trim().toUpperCase();
     if (!cleanId) return;
     
+    setIsSyncing(true);
     setKitchenId(cleanId);
     localStorage.setItem('mou_kitchen_id', cleanId);
-    kitchenNode.current = gun.get('mou_cookbook_v1').get(cleanId);
+    
+    // 建立廚房節點
+    kitchenNode.current = gun.get('mou_cookbook_v2').get(cleanId);
 
-    // Listen for recipes sync
+    // 監聽食譜同步 (使用 map().on 以監聽集合變動)
     kitchenNode.current.get('recipes').map().on((data: any, key: string) => {
       if (data === null) {
         setRecipes(prev => prev.filter(r => r.id.toString() !== key));
@@ -238,20 +258,22 @@ const App: React.FC = () => {
         setRecipes(prev => {
           const exists = prev.find(r => r.id.toString() === key);
           if (exists) {
-            // Only update if remote is different to avoid infinite loop
+            // 只在有差異時更新，避免無窮迴圈
             if (JSON.stringify(exists) !== JSON.stringify(remoteRecipe)) {
               return prev.map(r => r.id.toString() === key ? remoteRecipe : r);
             }
             return prev;
           }
+          // 若不存在，新增至列表
           return [...prev, remoteRecipe];
         });
+        setIsSyncing(false);
       } catch (e) {
         console.error("Sync parse error", e);
       }
     });
 
-    // Listen for fridge sync
+    // 監聽冰箱同步
     kitchenNode.current.get('fridge').map().on((data: any, key: string) => {
       if (data === null) {
         setFridgeItems(prev => prev.filter(i => i.id.toString() !== key));
@@ -273,6 +295,9 @@ const App: React.FC = () => {
         console.error("Fridge sync error", e);
       }
     });
+    
+    // 設定短暫延遲後關閉同步中動畫
+    setTimeout(() => setIsSyncing(false), 2000);
   };
 
   useEffect(() => {
@@ -354,7 +379,7 @@ const App: React.FC = () => {
       setRecipes(prev => [...prev, newRecipe]);
     }
 
-    // Sync to Gun
+    // 同步到 Gun.js
     if (kitchenId && kitchenNode.current) {
       kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
     }
@@ -502,7 +527,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <button onClick={() => setIsSyncModalOpen(true)} className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all">
-            <CloudSyncIcon className="w-6 h-6" active={!!kitchenId} />
+            <CloudSyncIcon className="w-6 h-6" active={!!kitchenId} syncing={isSyncing} />
           </button>
           <button onClick={() => { setCurrentPage(Page.Fridge); setSelectedRecipe(null); }} className={`w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all ${currentPage === Page.Fridge ? 'text-amber-600 ring-2 ring-amber-500' : 'text-[#5d534a]'}`}><FridgeIconLineArt className="w-6 h-6" /></button>
           <button onClick={() => { setCurrentPage(Page.Favorites); setSelectedRecipe(null); }} className={`w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all ${currentPage === Page.Favorites ? 'ring-2 ring-red-500' : ''}`}><span className="text-xl">{currentPage === Page.Favorites ? '❤️' : '🤍'}</span></button>
@@ -660,9 +685,14 @@ const App: React.FC = () => {
           <div className="bg-[#fcfaf2] w-full max-w-sm rounded-[3rem] p-10 relative animate-slide-up shadow-2xl border-4 border-white">
             <button onClick={() => setIsSyncModalOpen(false)} className="absolute right-8 top-8 text-2xl text-gray-300">×</button>
             <div className="text-center mb-8">
-              <div className="text-5xl mb-4">🏠</div>
+              <div className="text-5xl mb-4 relative">
+                🏠
+                <div className={`absolute -right-2 -top-2 w-4 h-4 rounded-full border-2 border-white animate-pulse ${isGunConnected ? 'bg-green-500' : 'bg-red-400'}`}></div>
+              </div>
               <h2 className="text-xl font-black text-gray-800">連結共同廚房</h2>
-              <p className="text-[10px] text-gray-400 mt-2 font-bold tracking-widest uppercase">Sync recipes across devices</p>
+              <p className="text-[10px] text-gray-400 mt-2 font-bold tracking-widest uppercase">
+                {isGunConnected ? '✅ 同步節點已連接' : '⚠️ 正在嘗試連接同步網路...'}
+              </p>
             </div>
             
             {!kitchenId ? (
@@ -671,35 +701,45 @@ const App: React.FC = () => {
                   type="text" 
                   value={syncInput} 
                   onChange={e => setSyncInput(e.target.value.toUpperCase())} 
-                  className="w-full p-4 bg-white rounded-2xl border-2 border-amber-100 text-center font-black tracking-widest outline-none text-lg" 
+                  className="w-full p-4 bg-white rounded-2xl border-2 border-amber-100 text-center font-black tracking-widest outline-none text-lg focus:border-blue-400 transition-colors" 
                   placeholder="輸入廚房代碼"
                 />
                 <button 
                   onClick={() => { connectToKitchen(syncInput); setIsSyncModalOpen(false); }}
-                  className="w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold shadow-lg active-push"
+                  disabled={!syncInput.trim()}
+                  className="w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold shadow-lg active-push disabled:opacity-50"
                 >
                   開始同步
                 </button>
                 <p className="text-[10px] text-center text-gray-400 leading-relaxed italic px-4">
-                  在其他裝置輸入相同代碼，即可同步所有食譜與冰箱！
+                  在其他裝置輸入相同代碼，即可同步所有食譜與冰箱！建議代碼由字母與數字組成。
                 </p>
               </div>
             ) : (
               <div className="space-y-6 text-center">
-                <div className="p-5 bg-white rounded-[2rem] border-2 border-dashed border-blue-100">
+                <div className="p-5 bg-white rounded-[2rem] border-2 border-dashed border-blue-100 relative overflow-hidden group">
+                   {isSyncing && <div className="absolute inset-0 bg-blue-50/80 flex items-center justify-center text-[10px] font-black text-blue-600 animate-pulse uppercase tracking-[0.2em]">Syncing...</div>}
                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-1">Active Kitchen ID</span>
                    <p className="text-xl font-black text-blue-900 tracking-widest">{kitchenId}</p>
                 </div>
-                <button 
-                  onClick={() => { 
-                    setKitchenId(''); 
-                    localStorage.removeItem('mou_kitchen_id'); 
-                    window.location.reload(); // Reset state properly
-                  }}
-                  className="text-xs font-bold text-red-400 underline decoration-red-200 decoration-2 underline-offset-4 active-push"
-                >
-                  中斷連結 (切換回本機模式)
-                </button>
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={() => { setIsSyncModalOpen(false); connectToKitchen(kitchenId); }}
+                    className="text-xs font-black text-blue-500 py-2 bg-blue-50 rounded-xl active-push"
+                  >
+                    強制重新整理同步 🔄
+                  </button>
+                  <button 
+                    onClick={() => { 
+                      setKitchenId(''); 
+                      localStorage.removeItem('mou_kitchen_id'); 
+                      window.location.reload(); 
+                    }}
+                    className="text-xs font-bold text-red-400 underline decoration-red-200 decoration-2 underline-offset-4 active-push"
+                  >
+                    中斷連結 (切換回本機模式)
+                  </button>
+                </div>
               </div>
             )}
           </div>
