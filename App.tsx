@@ -539,7 +539,7 @@ const App: React.FC = () => {
           <div className="animate-slide-up">
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4 px-2">
-                 <h2 className="text-lg font-black text-gray-800">{currentPage === Page.Favorites ? '❤️ 我的收藏' : '📖 食譜全集'}</h2>
+                 <h2 className="text-lg font-black text-gray-800">{currentPage === Page.Favorites ? '❤️ 我的收藏' : ''}</h2>
                  {currentPage === Page.Favorites && recipes.filter(r => r.isFavorite).length === 0 && (
                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">(尚未收藏)</span>
                  )}
