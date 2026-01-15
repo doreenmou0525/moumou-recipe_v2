@@ -7,10 +7,12 @@ interface RecipeCardProps {
   recipe: Recipe;
   index: number;
   onClick: (recipe: Recipe) => void;
-  onToggleFavorite: (id: number) => void;
+  onToggleFavorite: (id: string) => void;
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, onClick, onToggleFavorite }) => {
+  if (!recipe || !recipe.id) return null;
+
   const isDataUrl = recipe.image?.startsWith('data:image');
   const icon = recipe.image || CATEGORY_ICONS[recipe.category] || '📖';
 
@@ -29,7 +31,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, index, onClick, onToggl
           {isDataUrl ? (
             <img src={recipe.image} className="w-full h-full object-cover rounded-2xl shadow-sm" alt={recipe.title} />
           ) : (
-            icon
+            <span className="select-none">{icon}</span>
           )}
         </div>
         

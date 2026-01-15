@@ -28,10 +28,13 @@ const cleanResponse = (text: string) => {
 };
 
 export const parseRecipeWithAI = async (input: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Use process.env.API_KEY directly for initialization as per guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ parts: [{ text: `請分析此食譜內容或網址：${input}` }] }],
+    // Using gemini-3-pro-preview for complex text tasks like recipe extraction
+    model: 'gemini-3-pro-preview',
+    // Pass prompt as direct string for text-only inputs
+    contents: `請分析此食譜內容或網址：${input}`,
     config: {
       systemInstruction: SYSTEM_PROMPT,
       responseMimeType: "application/json",
@@ -47,9 +50,11 @@ export const parseRecipeWithAI = async (input: string) => {
 };
 
 export const parseRecipeFromImage = async (base64Data: string, mimeType: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Use process.env.API_KEY directly for initialization as per guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    // Using gemini-3-pro-preview for vision/extraction tasks
+    model: 'gemini-3-pro-preview',
     contents: { 
       parts: [
         { inlineData: { data: base64Data, mimeType: mimeType } },

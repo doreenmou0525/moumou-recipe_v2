@@ -19,7 +19,8 @@ export const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export const DEFAULT_RECIPE: Recipe = {
-  id: 1,
+  // Fix: Change id from 1 to '1' as Recipe interface defines id as string
+  id: '1',
   title: "經典拿坡里義大利麵",
   category: "西式",
   sourceUrl: "https://example.com",

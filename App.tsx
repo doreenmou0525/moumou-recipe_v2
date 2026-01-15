@@ -7,6 +7,44 @@ import RecipeCard from './components/RecipeCard.tsx';
 import RecipeDetail from './components/RecipeDetail.tsx';
 import { parseRecipeWithAI, parseRecipeFromImage } from './services/geminiService.ts';
 
+// 核心修復：統一轉型與清洗函數
+const sanitizeRecipe = (data: any, key: string): Recipe | null => {
+  try {
+    const remote = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!remote || !remote.title) return null; // 損壞資料直接排除
+    
+    return {
+      id: String(key),
+      title: String(remote.title || '未命名食譜'),
+      category: (remote.category as any) || '其他',
+      image: String(remote.image || CATEGORY_ICONS[remote.category || '其他'] || '📖'),
+      ingredients: Array.isArray(remote.ingredients) ? remote.ingredients : [],
+      seasonings: Array.isArray(remote.seasonings) ? remote.seasonings : [],
+      steps: Array.isArray(remote.steps) ? remote.steps : [],
+      notes: String(remote.notes || ''),
+      sourceUrl: String(remote.sourceUrl || ''),
+      isFavorite: !!remote.isFavorite
+    };
+  } catch (e) {
+    return null;
+  }
+};
+
+const sanitizeFridgeItem = (data: any, key: string): FridgeItem | null => {
+  try {
+    const remote = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!remote || !remote.name) return null;
+    return {
+      id: String(key),
+      name: String(remote.name),
+      category: (remote.category as any) || '食材',
+      quantity: Number(remote.quantity || 1)
+    };
+  } catch (e) {
+    return null;
+  }
+};
+
 const gun = Gun({
   peers: [
     'https://gun-manhattan.herokuapp.com/gun',
@@ -167,22 +205,33 @@ const ImageCropper = ({ src, onCancel, onConfirm }: { src: string, onCancel: () 
 };
 
 const App: React.FC = () => {
+  // 修正：初始化時採用字串 ID 檢查
   const [recipes, setRecipes] = useState<Recipe[]>(() => {
     try {
       const saved = localStorage.getItem('mou_recipes');
-      return saved ? JSON.parse(saved) : [DEFAULT_RECIPE];
+      if (!saved) return [ { ...DEFAULT_RECIPE, id: '1' } ];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) 
+        ? parsed.map(r => sanitizeRecipe(r, r.id)).filter(Boolean) as Recipe[]
+        : [ { ...DEFAULT_RECIPE, id: '1' } ];
     } catch {
-      return [DEFAULT_RECIPE];
+      return [ { ...DEFAULT_RECIPE, id: '1' } ];
     }
   });
+  
   const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>(() => {
     try {
       const saved = localStorage.getItem('mou_fridge');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) 
+        ? parsed.map(i => sanitizeFridgeItem(i, i.id)).filter(Boolean) as FridgeItem[]
+        : [];
     } catch {
       return [];
     }
   });
+
   const [currentPage, setCurrentPage] = useState<Page>(Page.Home);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('目錄');
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,7 +240,7 @@ const App: React.FC = () => {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [isParsing, setIsParsing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const [kitchenId, setKitchenId] = useState<string>(() => localStorage.getItem('mou_kitchen_id') || '');
@@ -203,7 +252,7 @@ const App: React.FC = () => {
 
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
   const [croppingTarget, setCroppingTarget] = useState<'cover' | null>(null);
-  const [editingFridgeId, setEditingFridgeId] = useState<number | null>(null);
+  const [editingFridgeId, setEditingFridgeId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
   const aiImageInputRef = useRef<HTMLInputElement>(null);
@@ -242,93 +291,54 @@ const App: React.FC = () => {
       setKitchenId(cleanId);
       localStorage.setItem('mou_kitchen_id', cleanId);
       
-      // 使用更穩定的節點路徑
-      kitchenNode.current = gun.get('mou_cookbook_v4').get(cleanId);
+      // 核心重置：升級節點版本至 v6
+      kitchenNode.current = gun.get('mou_cookbook_v6').get(cleanId);
 
-      // 食譜同步
       kitchenNode.current.get('recipes').map().on((data: any, key: string) => {
-        // 安全檢查 key 是否為合法 ID
-        if (!key || key === '_' || key === 'undefined' || key === 'null') return;
-        const numericId = Number(key);
-        if (isNaN(numericId)) return;
+        if (!key || key.startsWith('_')) return;
 
         if (data === null) {
-          setRecipes(prev => prev.filter(r => r.id !== numericId));
+          setRecipes(prev => prev.filter(r => r.id !== key));
           return;
         }
         
-        try {
-          let remoteRecipe: any = typeof data === 'string' ? JSON.parse(data) : data;
-          
-          // 強制型別校正與資料補完，防止渲染崩潰
-          if (!remoteRecipe || typeof remoteRecipe !== 'object' || !remoteRecipe.title) return;
-          
-          const sanitizedRecipe: Recipe = {
-            id: numericId,
-            title: String(remoteRecipe.title || '未命名食譜'),
-            category: (remoteRecipe.category as any) || '其他',
-            image: remoteRecipe.image || CATEGORY_ICONS[remoteRecipe.category || '其他'] || '📖',
-            ingredients: Array.isArray(remoteRecipe.ingredients) ? remoteRecipe.ingredients : [],
-            seasonings: Array.isArray(remoteRecipe.seasonings) ? remoteRecipe.seasonings : [],
-            steps: Array.isArray(remoteRecipe.steps) ? remoteRecipe.steps : [],
-            notes: remoteRecipe.notes || '',
-            sourceUrl: remoteRecipe.sourceUrl || '',
-            isFavorite: !!remoteRecipe.isFavorite
-          };
+        const sanitized = sanitizeRecipe(data, key);
+        if (!sanitized) return;
 
-          setRecipes(prev => {
-            const index = prev.findIndex(r => r.id === numericId);
-            if (index > -1) {
-              const current = prev[index];
-              // 深度比較是否有變更，減少不必要的更新
-              if (JSON.stringify(current) === JSON.stringify(sanitizedRecipe)) return prev;
-              const next = [...prev];
-              next[index] = sanitizedRecipe;
-              return next;
-            }
-            return [...prev, sanitizedRecipe];
-          });
-          setIsSyncing(false);
-        } catch (e) {
-          console.error("Recipe sync error", e);
-        }
+        setRecipes(prev => {
+          const index = prev.findIndex(r => r.id === key);
+          if (index > -1) {
+            if (JSON.stringify(prev[index]) === JSON.stringify(sanitized)) return prev;
+            const next = [...prev];
+            next[index] = sanitized;
+            return next;
+          }
+          return [...prev, sanitized];
+        });
+        setIsSyncing(false);
       });
 
-      // 冰箱同步
       kitchenNode.current.get('fridge').map().on((data: any, key: string) => {
-        if (!key || key === '_' || key === 'undefined' || key === 'null') return;
-        const numericId = Number(key);
-        if (isNaN(numericId)) return;
+        if (!key || key.startsWith('_')) return;
 
         if (data === null) {
-          setFridgeItems(prev => prev.filter(i => i.id !== numericId));
+          setFridgeItems(prev => prev.filter(i => i.id !== key));
           return;
         }
         
-        try {
-          let remoteItem: any = typeof data === 'string' ? JSON.parse(data) : data;
-          if (!remoteItem || typeof remoteItem !== 'object' || !remoteItem.name) return;
-          
-          const sanitizedItem: FridgeItem = {
-            id: numericId,
-            name: String(remoteItem.name),
-            category: (remoteItem.category as any) || '食材',
-            quantity: Number(remoteItem.quantity || 1)
-          };
-          
-          setFridgeItems(prev => {
-            const index = prev.findIndex(i => i.id === numericId);
-            if (index > -1) {
-              if (JSON.stringify(prev[index]) === JSON.stringify(sanitizedItem)) return prev;
-              const next = [...prev];
-              next[index] = sanitizedItem;
-              return next;
-            }
-            return [...prev, sanitizedItem];
-          });
-        } catch (e) {
-          console.error("Fridge sync error", e);
-        }
+        const sanitized = sanitizeFridgeItem(data, key);
+        if (!sanitized) return;
+
+        setFridgeItems(prev => {
+          const index = prev.findIndex(i => i.id === key);
+          if (index > -1) {
+            if (JSON.stringify(prev[index]) === JSON.stringify(sanitized)) return prev;
+            const next = [...prev];
+            next[index] = sanitized;
+            return next;
+          }
+          return [...prev, sanitized];
+        });
       });
       
       setTimeout(() => setIsSyncing(false), 3000);
@@ -352,7 +362,6 @@ const App: React.FC = () => {
 
   const allFilteredRecipes = useMemo(() => {
     return recipes.filter(r => {
-      // 增加防禦性檢查
       if (!r || typeof r.title !== 'string') return false;
       const isFavPage = currentPage === Page.Favorites;
       const matchFav = isFavPage ? !!r.isFavorite : true;
@@ -369,24 +378,24 @@ const App: React.FC = () => {
 
   const totalPages = Math.ceil(allFilteredRecipes.length / ITEMS_PER_PAGE);
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = (id: string) => {
     const updated = recipes.map(r => r.id === id ? { ...r, isFavorite: !r.isFavorite } : r);
     setRecipes(updated);
     const item = updated.find(r => r.id === id);
     if (item && kitchenId && kitchenNode.current) {
-      kitchenNode.current.get('recipes').get(id.toString()).put(JSON.stringify(item));
+      kitchenNode.current.get('recipes').get(id).put(JSON.stringify(item));
     }
     if (selectedRecipe && selectedRecipe.id === id) {
       setSelectedRecipe(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
     }
   };
 
-  const handleUpdateNotes = (id: number, notes: string) => {
+  const handleUpdateNotes = (id: string, notes: string) => {
     const updated = recipes.map(r => r.id === id ? { ...r, notes } : r);
     setRecipes(updated);
     const item = updated.find(r => r.id === id);
     if (item && kitchenId && kitchenNode.current) {
-      kitchenNode.current.get('recipes').get(id.toString()).put(JSON.stringify(item));
+      kitchenNode.current.get('recipes').get(id).put(JSON.stringify(item));
     }
     if (selectedRecipe && selectedRecipe.id === id) {
       setSelectedRecipe(prev => prev ? { ...prev, notes } : null);
@@ -400,8 +409,9 @@ const App: React.FC = () => {
       if (typeof input === 'string') return input.split('\n').map(s => s.trim()).filter(Boolean);
       return [];
     };
+    const newId = formData.id || Date.now().toString();
     const newRecipe: Recipe = {
-      id: formData.id || Date.now(),
+      id: newId,
       title: formData.title || '未命名食譜',
       category: (formData.category as any) || '東式',
       image: formData.image || CATEGORY_ICONS[formData.category || '東式'] || '📖',
@@ -414,22 +424,22 @@ const App: React.FC = () => {
     };
 
     if (formData.id) {
-      setRecipes(prev => prev.map(r => r.id === newRecipe.id ? newRecipe : r));
+      setRecipes(prev => prev.map(r => r.id === newId ? newRecipe : r));
     } else {
       setRecipes(prev => [...prev, newRecipe]);
     }
 
     if (kitchenId && kitchenNode.current) {
-      kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
+      kitchenNode.current.get('recipes').get(newId).put(JSON.stringify(newRecipe));
     }
 
     setCurrentPage(Page.Home);
   };
 
-  const handleDeleteRecipe = (id: number) => {
+  const handleDeleteRecipe = (id: string) => {
     setRecipes(prev => prev.filter(r => r.id !== id));
     if (kitchenId && kitchenNode.current) {
-      kitchenNode.current.get('recipes').get(id.toString()).put(null);
+      kitchenNode.current.get('recipes').get(id).put(null);
     }
     setShowDeleteConfirm(null);
     setSelectedRecipe(null);
@@ -437,33 +447,34 @@ const App: React.FC = () => {
 
   const handleAddFridgeItem = () => {
     if (!newFridgeName.trim()) return;
-    const newItem: FridgeItem = { id: Date.now(), name: newFridgeName, category: newFridgeCat, quantity: 1 };
+    const newId = Date.now().toString();
+    const newItem: FridgeItem = { id: newId, name: newFridgeName, category: newFridgeCat, quantity: 1 };
     setFridgeItems(prev => [...prev, newItem]);
     
     if (kitchenId && kitchenNode.current) {
-      kitchenNode.current.get('fridge').get(newItem.id.toString()).put(JSON.stringify(newItem));
+      kitchenNode.current.get('fridge').get(newId).put(JSON.stringify(newItem));
     }
     
     setNewFridgeName('');
     setIsFridgeAddOpen(false);
   };
 
-  const handleUpdateFridgeItem = (id: number) => {
+  const handleUpdateFridgeItem = (id: string) => {
     if (editingValue.trim()) {
       const updated = fridgeItems.map(item => item.id === id ? { ...item, name: editingValue } : item);
       setFridgeItems(updated);
       const item = updated.find(i => i.id === id);
       if (item && kitchenId && kitchenNode.current) {
-        kitchenNode.current.get('fridge').get(id.toString()).put(JSON.stringify(item));
+        kitchenNode.current.get('fridge').get(id).put(JSON.stringify(item));
       }
     }
     setEditingFridgeId(null);
   };
 
-  const handleDeleteFridgeItem = (id: number) => {
+  const handleDeleteFridgeItem = (id: string) => {
     setFridgeItems(prev => prev.filter(i => i.id !== id));
     if (kitchenId && kitchenNode.current) {
-      kitchenNode.current.get('fridge').get(id.toString()).put(null);
+      kitchenNode.current.get('fridge').get(id).put(null);
     }
   };
 
@@ -479,28 +490,19 @@ const App: React.FC = () => {
     setIsParsing(true);
     try {
       const parsed = await parseRecipeWithAI(aiInput);
+      const newId = Date.now().toString();
+      const sanitized = sanitizeRecipe(parsed, newId);
+      if (!sanitized) throw new Error("Invalid AI output");
       
-      const sanitized = {
-        title: parsed.title || '未命名食譜',
-        category: (parsed.category as any) || '其他',
-        ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
-        seasonings: Array.isArray(parsed.seasonings) ? parsed.seasonings : [],
-        steps: Array.isArray(parsed.steps) ? parsed.steps : [],
-        notes: parsed.notes || '',
-        sourceUrl: parsed.sourceUrl || '',
-        image: parsed.image || CATEGORY_ICONS[parsed.category || '其他'] || '📖'
-      };
-
-      const newRecipe: Recipe = { ...sanitized, id: Date.now(), isFavorite: false };
-      setRecipes(prev => [...prev, newRecipe]);
+      setRecipes(prev => [...prev, sanitized]);
       
       if (kitchenId && kitchenNode.current) {
-        kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
+        kitchenNode.current.get('recipes').get(newId).put(JSON.stringify(sanitized));
       }
       
       setIsAIModalOpen(false);
       setAiInput('');
-      setSelectedRecipe(newRecipe);
+      setSelectedRecipe(sanitized);
     } catch (e) { 
       console.error("AI Parse Error:", e);
       alert('解析失敗，請提供更詳細的內容。'); 
@@ -521,21 +523,14 @@ const App: React.FC = () => {
         const base64Data = fullBase64.split(',')[1];
         try {
           const parsed = await parseRecipeFromImage(base64Data, file.type);
-          
-          const sanitized = {
-            title: parsed.title || '未命名照片食譜',
-            category: (parsed.category as any) || '其他',
-            ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
-            seasonings: Array.isArray(parsed.seasonings) ? parsed.seasonings : [],
-            steps: Array.isArray(parsed.steps) ? parsed.steps : [],
-            notes: parsed.notes || '',
-            sourceUrl: parsed.sourceUrl || ''
-          };
+          const newId = Date.now().toString();
+          const sanitized = sanitizeRecipe(parsed, newId);
+          if (!sanitized) throw new Error("Invalid AI output");
 
-          const newRecipe: Recipe = { ...sanitized, id: Date.now(), isFavorite: false, image: fullBase64 };
+          const newRecipe = { ...sanitized, image: fullBase64 };
           setRecipes(prev => [...prev, newRecipe]);
           if (kitchenId && kitchenNode.current) {
-            kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
+            kitchenNode.current.get('recipes').get(newId).put(JSON.stringify(newRecipe));
           }
           setIsAIModalOpen(false);
           setSelectedRecipe(newRecipe);
@@ -636,6 +631,7 @@ const App: React.FC = () => {
             {selectedCategory === '目錄' ? (
               <div className="space-y-1 pb-4">
                 {paginatedRecipes.map((r, idx) => {
+                  if (!r) return null;
                   const globalIdx = (pageIndex * ITEMS_PER_PAGE) + idx + 1;
                   return (
                     <div key={r.id} onClick={() => setSelectedRecipe(r)} className="flex items-center gap-4 py-4 px-4 hover:bg-white/50 rounded-2xl transition-all cursor-pointer group border-b border-gray-100/50 active-push">
@@ -652,7 +648,7 @@ const App: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 gap-10 pb-4">
                 {paginatedRecipes.map((r, idx) => (
-                  <RecipeCard key={r.id} recipe={r} index={idx} onClick={() => setSelectedRecipe(r)} onToggleFavorite={toggleFavorite} />
+                  r && <RecipeCard key={r.id} recipe={r} index={idx} onClick={() => setSelectedRecipe(r)} onToggleFavorite={toggleFavorite} />
                 ))}
               </div>
             )}

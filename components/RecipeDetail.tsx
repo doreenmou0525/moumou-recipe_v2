@@ -9,10 +9,10 @@ interface RecipeDetailProps {
   fridgeItems: FridgeItem[];
   onClose: () => void;
   onEdit: (recipe: Recipe) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onSelectRecipe: (recipe: Recipe) => void;
-  onToggleFavorite: (id: number) => void;
-  onUpdateNotes: (id: number, notes: string) => void;
+  onToggleFavorite: (id: string) => void;
+  onUpdateNotes: (id: string, notes: string) => void;
 }
 
 const RecipeDetail: React.FC<RecipeDetailProps> = ({ 
@@ -20,11 +20,13 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
 }) => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [tempNotes, setTempNotes] = useState(recipe.notes || '');
+  const [tempNotes, setTempNotes] = useState(recipe?.notes || '');
 
   useEffect(() => {
-    setTempNotes(recipe.notes || '');
-  }, [recipe.id, recipe.notes]);
+    if (recipe) setTempNotes(recipe.notes || '');
+  }, [recipe?.id, recipe?.notes]);
+
+  if (!recipe) return null;
 
   const toggleCheck = (id: string) => {
     const newSet = new Set(checkedItems);
@@ -41,10 +43,15 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
   const isDataUrl = recipe.image?.startsWith('data:image');
 
   const isInFridge = (itemText: string) => {
+    if (!itemText || !Array.isArray(fridgeItems)) return false;
     return fridgeItems.some(item => 
-      itemText.toLowerCase().includes(item.name.toLowerCase())
+      item && item.name && itemText.toLowerCase().includes(item.name.toLowerCase())
     );
   };
+
+  const safeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const safeSeasonings = Array.isArray(recipe.seasonings) ? recipe.seasonings : [];
+  const safeSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
@@ -103,7 +110,7 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
              主要食材
           </h4>
           <div className="grid grid-cols-1 gap-2.5">
-            {recipe.ingredients.map((ing, idx) => {
+            {safeIngredients.map((ing, idx) => {
               const checkId = `ing-${idx}`;
               const available = isInFridge(ing);
               return (
@@ -125,14 +132,14 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           </div>
         </div>
 
-        {recipe.seasonings && recipe.seasonings.length > 0 && (
+        {safeSeasonings.length > 0 && (
           <div className="mb-6 bg-amber-50/30 p-6 rounded-[2rem] shadow-sm border border-amber-100/50">
             <h4 className="font-black text-amber-800 mb-4 flex items-center gap-2 text-md uppercase tracking-tight">
                <span className="text-lg">🧂</span>
                調味配方
             </h4>
             <div className="grid grid-cols-1 gap-2.5">
-              {recipe.seasonings.map((sea, idx) => {
+              {safeSeasonings.map((sea, idx) => {
                 const checkId = `sea-${idx}`;
                 const available = isInFridge(sea);
                 return (
@@ -161,7 +168,7 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
              烹飪步驟
           </h4>
           <div className="space-y-4">
-            {recipe.steps.map((step, idx) => {
+            {safeSteps.map((step, idx) => {
               const checkId = `step-${idx}`;
               return (
                 <div 

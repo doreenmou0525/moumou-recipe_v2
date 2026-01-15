@@ -4,14 +4,14 @@ export type CategoryType = '西式' | '東式' | '湯品' | '烘焙' | '其他' 
 export type FridgeCategory = '食材' | '調味料' | '常溫區';
 
 export interface FridgeItem {
-  id: number;
+  id: string; // 統一使用字串 ID
   name: string;
   category: FridgeCategory;
   quantity: number;
 }
 
 export interface Recipe {
-  id: number;
+  id: string; // 統一使用字串 ID
   title: string;
   category: Exclude<CategoryType, '目錄'>;
   sourceUrl?: string;
