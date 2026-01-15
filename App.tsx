@@ -7,7 +7,6 @@ import RecipeCard from './components/RecipeCard.tsx';
 import RecipeDetail from './components/RecipeDetail.tsx';
 import { parseRecipeWithAI, parseRecipeFromImage } from './services/geminiService.ts';
 
-// 初始化 Gun.js，使用更多穩定的公用節點
 const gun = Gun({
   peers: [
     'https://gun-manhattan.herokuapp.com/gun',
@@ -16,7 +15,7 @@ const gun = Gun({
     'https://gundb-relay.onrender.com/gun',
     'https://gun-ams1.marda.no/gun'
   ],
-  localStorage: false // 禁用 Gun 自帶的 localStorage，由我們手動控制以獲得更好的效能
+  localStorage: false 
 });
 
 const ITEMS_PER_PAGE = 10;
@@ -39,34 +38,29 @@ const FridgeIconLineArt = ({ className }: { className?: string }) => (
 );
 
 const DoraemonChefIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 100 125" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="72" r="38" fill="#00A1E9" stroke="#333" strokeWidth="1.5" />
-    <circle cx="50" cy="78" r="30" fill="white" stroke="#333" strokeWidth="1.2" />
-    <ellipse cx="43" cy="58" rx="7.5" ry="10" fill="white" stroke="#333" strokeWidth="1.5" />
-    <ellipse cx="57" cy="58" rx="7.5" ry="10" fill="white" stroke="#333" strokeWidth="1.5" />
-    <circle cx="45" cy="61" r="1.8" fill="black" />
-    <circle cx="55" cy="61" r="1.8" fill="black" />
-    <circle cx="50" cy="68" r="4.5" fill="#E4002B" stroke="#333" strokeWidth="1" />
-    <circle cx="48.5" cy="66.5" r="1.2" fill="white" />
-    <path d="M50 72.5V85" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M35 84C40 92 60 92 65 84" stroke="#333" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    <line x1="22" y1="70" x2="36" y2="74" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="20" y1="80" x2="36" y2="80" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="22" y1="90" x2="36" y2="86" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="78" y1="70" x2="64" y2="74" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="80" y1="80" x2="64" y2="80" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="78" y1="90" x2="64" y2="86" stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M25 102C35 110 65 110 75 102" stroke="#E4002B" strokeWidth="4" strokeLinecap="round" />
-    <circle cx="50" cy="110" r="7" fill="#FFD700" stroke="#333" strokeWidth="1" />
-    <line x1="43" y1="108" x2="57" y2="108" stroke="#333" strokeWidth="1" />
-    <circle cx="50" cy="112" r="1.5" fill="#333" />
-    <path d="M42 104L35 112L42 116Z" fill="#E4002B" stroke="#333" strokeWidth="0.8" />
-    <path d="M58 104L65 112L58 116Z" fill="#E4002B" stroke="#333" strokeWidth="0.8" />
-    <g transform="translate(0, -6)">
-      <path d="M35 38C35 25 40 16 50 16C60 16 65 25 65 38H35Z" fill="white" stroke="#333" strokeWidth="1.5" />
-      <path d="M40 18C38 12 42 4 50 4C58 4 62 12 60 18" stroke="#333" strokeWidth="1.5" fill="white" />
-      <rect x="34" y="32" width="32" height="8" rx="2" fill="white" stroke="#333" strokeWidth="1.5" />
+  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="60" r="35" fill="#58B2DC" stroke="#2D3436" strokeWidth="1.8" />
+    <circle cx="50" cy="65" r="28" fill="white" stroke="#2D3436" strokeWidth="1.2" />
+    <ellipse cx="43" cy="48" rx="7" ry="9" fill="white" stroke="#2D3436" strokeWidth="1.5" />
+    <ellipse cx="57" cy="48" rx="7" ry="9" fill="white" stroke="#2D3436" strokeWidth="1.5" />
+    <path d="M40 48C40 46 46 46 46 48" stroke="#2D3436" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M54 48C54 46 60 46 60 48" stroke="#2D3436" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="50" cy="56" r="4" fill="#E74C3C" stroke="#2D3436" strokeWidth="1" />
+    <path d="M50 60V75" stroke="#2D3436" strokeWidth="1.2" />
+    <path d="M35 70C40 78 60 78 65 70" stroke="#2D3436" strokeWidth="1.8" strokeLinecap="round" />
+    <line x1="28" x2="40" y1="58" y2="61" stroke="#2D3436" strokeWidth="1" />
+    <line x1="26" x2="40" y1="65" y2="65" stroke="#2D3436" strokeWidth="1" />
+    <line x1="28" x2="40" y1="72" y2="69" stroke="#2D3436" strokeWidth="1" />
+    <line x1="72" x2="60" y1="58" y2="61" stroke="#2D3436" strokeWidth="1" />
+    <line x1="74" x2="60" y1="65" y2="65" stroke="#2D3436" strokeWidth="1" />
+    <line x1="72" x2="60" y1="72" y2="69" stroke="#2D3436" strokeWidth="1" />
+    <g transform="translate(0, -5)">
+      <path d="M35 30C35 20 40 12 50 12C60 12 65 20 65 30H35Z" fill="white" stroke="#2D3436" strokeWidth="1.8" />
+      <path d="M42 12C40 6 45 2 50 2C55 2 60 6 58 12" stroke="#2D3436" strokeWidth="1.5" fill="white" />
+      <rect x="33" y="25" width="34" height="7" rx="2" fill="white" stroke="#2D3436" strokeWidth="1.8" />
     </g>
+    <path d="M28 85C35 92 65 92 72 85" stroke="#E74C3C" strokeWidth="4" strokeLinecap="round" />
+    <circle cx="50" cy="92" r="6" fill="#F1C40F" stroke="#2D3436" strokeWidth="1.2" />
   </svg>
 );
 
@@ -192,7 +186,6 @@ const App: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Multi-device sync state
   const [kitchenId, setKitchenId] = useState<string>(() => localStorage.getItem('mou_kitchen_id') || '');
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [syncInput, setSyncInput] = useState('');
@@ -215,10 +208,7 @@ const App: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // 偵測 Gun.js 節點連線狀態
     const interval = setInterval(() => {
-       // Gun 不提供直接的連線狀態 API，但我們可以檢查內部連線
-       // 簡單假設：如果有網路且 kitchenId 已設定，通常會嘗試連線
        setIsGunConnected(navigator.onLine && !!kitchenId);
     }, 5000);
 
@@ -229,7 +219,6 @@ const App: React.FC = () => {
     };
   }, [kitchenId]);
 
-  // Initialize Gun listeners if kitchenId exists
   useEffect(() => {
     if (kitchenId) {
       connectToKitchen(kitchenId);
@@ -244,10 +233,8 @@ const App: React.FC = () => {
     setKitchenId(cleanId);
     localStorage.setItem('mou_kitchen_id', cleanId);
     
-    // 建立廚房節點
     kitchenNode.current = gun.get('mou_cookbook_v2').get(cleanId);
 
-    // 監聽食譜同步 (使用 map().on 以監聽集合變動)
     kitchenNode.current.get('recipes').map().on((data: any, key: string) => {
       if (data === null) {
         setRecipes(prev => prev.filter(r => r.id.toString() !== key));
@@ -258,13 +245,11 @@ const App: React.FC = () => {
         setRecipes(prev => {
           const exists = prev.find(r => r.id.toString() === key);
           if (exists) {
-            // 只在有差異時更新，避免無窮迴圈
             if (JSON.stringify(exists) !== JSON.stringify(remoteRecipe)) {
               return prev.map(r => r.id.toString() === key ? remoteRecipe : r);
             }
             return prev;
           }
-          // 若不存在，新增至列表
           return [...prev, remoteRecipe];
         });
         setIsSyncing(false);
@@ -273,7 +258,6 @@ const App: React.FC = () => {
       }
     });
 
-    // 監聽冰箱同步
     kitchenNode.current.get('fridge').map().on((data: any, key: string) => {
       if (data === null) {
         setFridgeItems(prev => prev.filter(i => i.id.toString() !== key));
@@ -296,7 +280,6 @@ const App: React.FC = () => {
       }
     });
     
-    // 設定短暫延遲後關閉同步中動畫
     setTimeout(() => setIsSyncing(false), 2000);
   };
 
@@ -379,7 +362,6 @@ const App: React.FC = () => {
       setRecipes(prev => [...prev, newRecipe]);
     }
 
-    // 同步到 Gun.js
     if (kitchenId && kitchenNode.current) {
       kitchenNode.current.get('recipes').get(newRecipe.id.toString()).put(JSON.stringify(newRecipe));
     }
@@ -500,28 +482,28 @@ const App: React.FC = () => {
 
   return (
     <div className="journal-container min-h-screen pb-20 overflow-hidden flex flex-col relative">
-      {/* 離線指示 Banner */}
-      <div className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 overflow-hidden ${!isOnline ? 'h-8' : 'h-0'}`}>
-        <div className="bg-amber-800/90 backdrop-blur-md text-white text-[10px] py-2 text-center font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-          <span className="animate-pulse">●</span> Offline Mode 離線模式
+      <div className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 overflow-hidden ${!isOnline ? 'h-10 opacity-100' : 'h-0 opacity-0'}`}>
+        <div className="bg-amber-800/95 backdrop-blur-xl text-white text-[10px] py-3 text-center font-black uppercase tracking-[0.4em] flex items-center justify-center gap-3">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          Offline 離線模式：您可以繼續瀏覽與編輯
         </div>
       </div>
 
-      <nav className={`sticky top-0 bg-white/70 backdrop-blur-xl z-50 p-4 px-6 flex justify-between items-center border-b border-gray-100/50 transition-all ${!isOnline ? 'mt-8' : ''}`}>
+      <nav className={`sticky top-0 bg-white/70 backdrop-blur-xl z-50 p-4 px-6 flex justify-between items-center border-b border-gray-100/50 transition-all ${!isOnline ? 'mt-10' : ''}`}>
         <div className="flex items-center gap-3">
           <div className="w-14 h-14 rounded-full bg-blue-50/50 shadow-inner flex items-center justify-center cursor-pointer active-push overflow-hidden p-1.5 border-2 border-blue-100 relative"
                onClick={() => { setCurrentPage(Page.Home); setSelectedCategory('目錄'); setSelectedRecipe(null); }}>
             <DoraemonChefIcon className="w-full h-full" />
-            <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+            <div className={`absolute bottom-1 right-1 w-3 h-3 rounded-full border-2 border-white shadow-sm ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}></div>
           </div>
           {kitchenId && (
             <div className="hidden sm:block">
-              <span className="text-[8px] font-black text-blue-500/50 uppercase tracking-widest">Linked Kitchen</span>
-              <p className="text-[10px] font-bold text-blue-900/60 leading-none">{kitchenId}</p>
+              <span className="text-[8px] font-black text-blue-500/50 uppercase tracking-widest leading-none block">Linked Kitchen</span>
+              <p className="text-[10px] font-bold text-blue-900/60 leading-tight">{kitchenId}</p>
             </div>
           )}
         </div>
-        <div className="flex flex-col items-center text-center cursor-pointer" onClick={() => { setCurrentPage(Page.Home); setSelectedCategory('目錄'); setSelectedRecipe(null); }}>
+        <div className="flex flex-col items-center text-center cursor-pointer flex-1 px-4" onClick={() => { setCurrentPage(Page.Home); setSelectedCategory('目錄'); setSelectedRecipe(null); }}>
           <h1 className="text-lg font-black text-[#5d534a] tracking-[0.2em] leading-tight">牟牟的食譜帳</h1>
           <span className="text-[8px] font-bold text-amber-600/60 tracking-widest uppercase text-center">MOU CHEF'S COOKBOOK</span>
         </div>
@@ -540,9 +522,6 @@ const App: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4 px-2">
                  <h2 className="text-lg font-black text-gray-800">{currentPage === Page.Favorites ? '❤️ 我的收藏' : ''}</h2>
-                 {currentPage === Page.Favorites && recipes.filter(r => r.isFavorite).length === 0 && (
-                   <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">(尚未收藏)</span>
-                 )}
               </div>
               <div className="relative mb-6">
                 <input type="text" placeholder="搜尋食譜..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-5 pl-14 bg-white border border-gray-100 rounded-[2.2rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/5 transition-all font-medium text-gray-700" />
@@ -552,9 +531,10 @@ const App: React.FC = () => {
                 <div className="flex gap-4">
                   <button 
                     onClick={() => setIsAIModalOpen(true)} 
-                    className={`flex-1 py-5 bg-[#5d534a] text-white rounded-[1.8rem] shadow-lg font-bold active-push transition-all relative overflow-hidden group ${!isOnline ? 'opacity-70 bg-gray-500' : ''}`}
+                    disabled={!isOnline}
+                    className={`flex-1 py-5 bg-[#5d534a] text-white rounded-[1.8rem] shadow-lg font-bold active-push transition-all relative overflow-hidden group ${!isOnline ? 'opacity-40 grayscale' : ''}`}
                   >
-                    {!isOnline && <span className="absolute top-2 right-4 text-[8px] font-black opacity-50">OFFLINE</span>}
+                    {!isOnline && <span className="absolute top-1 right-2 text-[6px] font-black opacity-40">ONLINE ONLY</span>}
                     ✨ AI 解析
                   </button>
                   <button onClick={() => { setFormData({title: '', category: '東式', image: '🍱', ingredients: [], seasonings: [], steps: [], sourceUrl: '', notes: ''}); setCurrentPage(Page.Add); }} className="flex-1 py-5 bg-white border border-gray-100 text-[#5d534a] rounded-[1.8rem] shadow-sm font-bold active-push">+ 手動新增</button>
@@ -570,7 +550,7 @@ const App: React.FC = () => {
                       <span className="text-xs font-black text-amber-800/40 w-8 flex-shrink-0">{String(globalIdx).padStart(2, '0')}.</span>
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         <h3 className="font-bold text-gray-700 truncate group-hover:text-amber-800 transition-colors">{r.title}</h3>
-                        {r.isFavorite && <span className="text-[10px] animate-pulse">❤️</span>}
+                        {r.isFavorite && <span className="text-[10px]">❤️</span>}
                       </div>
                       <span className="px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 rounded-md flex-shrink-0">{r.category}</span>
                     </div>
@@ -622,7 +602,6 @@ const App: React.FC = () => {
                            <button onClick={() => handleDeleteFridgeItem(item.id)} className="text-gray-200 hover:text-red-400 transition-colors active-push text-[10px] p-1 ml-2">✕</button>
                          </div>
                        ))}
-                       {items.length === 0 && <div className="p-3 text-center"><p className="text-gray-200 text-[8px] font-bold tracking-widest italic uppercase">Empty</p></div>}
                      </div>
                    </div>
                  );
@@ -643,9 +622,6 @@ const App: React.FC = () => {
                     </div>
                     <button onClick={() => editImageInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#5d534a] text-white rounded-full flex items-center justify-center shadow-lg active-push">📷</button>
                   </div>
-                  <div className="flex gap-2">
-                    <input type="text" value={isDataUrl ? '' : (formData.image || '')} onChange={e => setFormData({ ...formData, image: e.target.value })} placeholder="Emoji..." className="w-24 text-center bg-gray-50 p-2 rounded-xl outline-none font-bold text-lg border border-gray-100" />
-                  </div>
                   <input type="file" accept="image/*" ref={editImageInputRef} className="hidden" onChange={e => onImageSelected(e, 'cover')} />
                 </div>
                 <div>
@@ -655,11 +631,7 @@ const App: React.FC = () => {
                   </select>
                 </div>
                 <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Recipe Name 名稱</label><input type="text" value={formData.title || ''} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="輸入食譜名稱..." className="w-full bg-gray-50 p-5 rounded-[1.5rem] outline-none font-bold text-xl border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all" /></div>
-                <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Source URL 來源網址</label><input type="text" value={formData.sourceUrl || ''} onChange={e => setFormData({ ...formData, sourceUrl: e.target.value })} placeholder="貼上網址或來源..." className="w-full bg-gray-50 p-5 rounded-[1.5rem] outline-none font-medium text-amber-900/60 border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all" /></div>
                 <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Ingredients 主要食材</label><textarea value={Array.isArray(formData.ingredients) ? formData.ingredients.join('\n') : formData.ingredients} onChange={e => setFormData({ ...formData, ingredients: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-32 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="每行一個食材..." /></div>
-                <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Seasonings 調味配方</label><textarea value={Array.isArray(formData.seasonings) ? formData.seasonings.join('\n') : formData.seasonings} onChange={e => setFormData({ ...formData, seasonings: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-32 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="每行一個調味品..." /></div>
-                <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Steps 烹飪步驟</label><textarea value={Array.isArray(formData.steps) ? formData.steps.join('\n') : formData.steps} onChange={e => setFormData({ ...formData, steps: e.target.value.split('\n') })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-48 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="1. 先熱鍋..." /></div>
-                <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-3">Notes 筆記</label><textarea value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full bg-gray-50 p-5 rounded-[1.5rem] h-24 outline-none font-medium border-2 border-transparent focus:border-amber-500/20 focus:bg-white transition-all resize-none" placeholder="記下你的美味筆記..." /></div>
                 <div className="flex gap-4 pt-4"><button onClick={handleSave} className="flex-2 py-5 px-8 bg-[#5d534a] text-white rounded-[1.5rem] font-bold shadow-xl active-push">保存食譜</button><button onClick={() => setCurrentPage(Page.Home)} className="flex-1 py-5 bg-gray-100 text-gray-500 rounded-[1.5rem] font-bold active-push">取消</button></div>
               </div>
             </div>
@@ -679,7 +651,6 @@ const App: React.FC = () => {
 
       {selectedRecipe && <RecipeDetail recipe={selectedRecipe} allRecipes={recipes} fridgeItems={fridgeItems} onClose={() => setSelectedRecipe(null)} onEdit={startEdit} onDelete={(id) => setShowDeleteConfirm(id)} onSelectRecipe={setSelectedRecipe} onToggleFavorite={toggleFavorite} onUpdateNotes={handleUpdateNotes} />}
 
-      {/* Sync Modal */}
       {isSyncModalOpen && (
         <div className="fixed inset-0 bg-black/40 z-[200] flex items-center justify-center p-6 backdrop-blur-md">
           <div className="bg-[#fcfaf2] w-full max-w-sm rounded-[3rem] p-10 relative animate-slide-up shadow-2xl border-4 border-white">
@@ -690,11 +661,8 @@ const App: React.FC = () => {
                 <div className={`absolute -right-2 -top-2 w-4 h-4 rounded-full border-2 border-white animate-pulse ${isGunConnected ? 'bg-green-500' : 'bg-red-400'}`}></div>
               </div>
               <h2 className="text-xl font-black text-gray-800">連結共同廚房</h2>
-              <p className="text-[10px] text-gray-400 mt-2 font-bold tracking-widest uppercase">
-                {isGunConnected ? '✅ 同步節點已連接' : '⚠️ 正在嘗試連接同步網路...'}
-              </p>
+              <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{isOnline ? 'Online Sync Available' : 'Sync Paused - Offline'}</p>
             </div>
-            
             {!kitchenId ? (
               <div className="space-y-4">
                 <input 
@@ -706,40 +674,24 @@ const App: React.FC = () => {
                 />
                 <button 
                   onClick={() => { connectToKitchen(syncInput); setIsSyncModalOpen(false); }}
-                  disabled={!syncInput.trim()}
-                  className="w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold shadow-lg active-push disabled:opacity-50"
+                  disabled={!syncInput.trim() || !isOnline}
+                  className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold shadow-lg active-push ${!isOnline ? 'opacity-50' : ''}`}
                 >
                   開始同步
                 </button>
-                <p className="text-[10px] text-center text-gray-400 leading-relaxed italic px-4">
-                  在其他裝置輸入相同代碼，即可同步所有食譜與冰箱！建議代碼由字母與數字組成。
-                </p>
               </div>
             ) : (
               <div className="space-y-6 text-center">
                 <div className="p-5 bg-white rounded-[2rem] border-2 border-dashed border-blue-100 relative overflow-hidden group">
-                   {isSyncing && <div className="absolute inset-0 bg-blue-50/80 flex items-center justify-center text-[10px] font-black text-blue-600 animate-pulse uppercase tracking-[0.2em]">Syncing...</div>}
                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-1">Active Kitchen ID</span>
                    <p className="text-xl font-black text-blue-900 tracking-widest">{kitchenId}</p>
                 </div>
-                <div className="flex flex-col gap-3">
-                  <button 
-                    onClick={() => { setIsSyncModalOpen(false); connectToKitchen(kitchenId); }}
-                    className="text-xs font-black text-blue-500 py-2 bg-blue-50 rounded-xl active-push"
-                  >
-                    強制重新整理同步 🔄
-                  </button>
-                  <button 
-                    onClick={() => { 
-                      setKitchenId(''); 
-                      localStorage.removeItem('mou_kitchen_id'); 
-                      window.location.reload(); 
-                    }}
-                    className="text-xs font-bold text-red-400 underline decoration-red-200 decoration-2 underline-offset-4 active-push"
-                  >
-                    中斷連結 (切換回本機模式)
-                  </button>
-                </div>
+                <button 
+                  onClick={() => { setKitchenId(''); localStorage.removeItem('mou_kitchen_id'); window.location.reload(); }}
+                  className="text-xs font-bold text-red-400 underline decoration-red-200 decoration-2 underline-offset-4 active-push"
+                >
+                  中斷連結 (切換回本機模式)
+                </button>
               </div>
             )}
           </div>
@@ -752,8 +704,7 @@ const App: React.FC = () => {
             <button onClick={() => setIsFridgeAddOpen(false)} className="absolute right-8 top-8 text-2xl text-gray-300">×</button>
             <h2 className="text-xl font-black mb-6">📦 補購物資</h2>
             <div className="space-y-6">
-              <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">物資名稱</label><input type="text" value={newFridgeName} onChange={e => setNewFridgeName(e.target.value)} className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="例如：雞蛋、洋蔥..." autoFocus /></div>
-              <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">所屬分類</label><div className="grid grid-cols-3 gap-2">{FRIDGE_CATEGORIES.map(cat => (<button key={cat} onClick={() => setNewFridgeCat(cat)} className={`py-3 rounded-xl font-bold text-[10px] transition-all ${newFridgeCat === cat ? 'bg-[#5d534a] text-white' : 'bg-gray-50 text-gray-400'}`}>{cat}</button>))}</div></div>
+              <input type="text" value={newFridgeName} onChange={e => setNewFridgeName(e.target.value)} className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="例如：雞蛋、洋蔥..." autoFocus />
               <button onClick={handleAddFridgeItem} className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold shadow-lg active-push">加入冰箱</button>
             </div>
           </div>
@@ -765,40 +716,26 @@ const App: React.FC = () => {
           <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 relative animate-slide-up">
             <button onClick={() => setIsAIModalOpen(false)} className="absolute right-8 top-8 text-2xl text-gray-300">×</button>
             <h2 className="text-xl font-black mb-6">✨ AI 智慧解析</h2>
-            {!isOnline && (
-              <div className="mb-4 p-4 bg-red-50 text-red-600 text-xs font-bold rounded-[1.5rem] border border-red-100 flex items-center gap-3">
-                <span className="text-lg">📵</span>
-                <span>目前處於離線狀態，無法使用 AI 功能。請連上網路後再試。</span>
-              </div>
-            )}
             <input type="file" accept="image/*" ref={aiImageInputRef} className="hidden" onChange={e => onImageSelected(e, 'ai')} />
             <div className="space-y-4">
               <textarea 
                 value={aiInput} 
                 onChange={e => setAiInput(e.target.value)} 
-                disabled={!isOnline}
-                className={`w-full h-40 p-4 bg-gray-50 rounded-2xl outline-none text-sm font-medium transition-all ${!isOnline ? 'opacity-30' : 'focus:bg-white'}`} 
-                placeholder={isOnline ? "貼上食譜網址、文字，或點擊下方按鈕上傳照片..." : "離線中... 只能手動新增食譜"} 
+                className="w-full h-40 p-4 bg-gray-50 rounded-2xl outline-none text-sm font-medium focus:bg-white" 
+                placeholder="貼上食譜網址、文字，或點擊下方按鈕上傳照片..." 
               />
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={handleAIParse} 
-                  disabled={!aiInput.trim() || isParsing || !isOnline} 
-                  className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold transition-all active-push ${(!aiInput.trim() || isParsing || !isOnline) ? 'opacity-50' : ''}`}
-                >
-                  {isParsing && aiInput.trim() ? '解析中...' : '開始文字/網址解析'}
-                </button>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-px bg-gray-100"></div><span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">or</span><div className="flex-1 h-px bg-gray-100"></div>
-                </div>
-                <button 
-                  onClick={() => aiImageInputRef.current?.click()} 
-                  disabled={isParsing || !isOnline} 
-                  className={`w-full py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push transition-all ${(!isOnline) ? 'opacity-30 border-gray-300 text-gray-300' : ''}`}
-                >
-                  {isParsing && !aiInput.trim() ? <span className="animate-pulse">圖片辨識中...</span> : <><span>📷</span> 選擇照片辨識食譜</>}
-                </button>
-              </div>
+              <button 
+                onClick={handleAIParse} 
+                className={`w-full py-4 bg-[#5d534a] text-white rounded-2xl font-bold active-push`}
+              >
+                開始解析
+              </button>
+              <button 
+                onClick={() => aiImageInputRef.current?.click()} 
+                className="w-full py-4 bg-white border-2 border-[#5d534a] text-[#5d534a] rounded-2xl font-bold flex items-center justify-center gap-2 active-push"
+              >
+                <span>📷</span> 選擇照片辨識食譜
+              </button>
             </div>
           </div>
         </div>
