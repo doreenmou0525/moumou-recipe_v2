@@ -226,61 +226,95 @@ const App: React.FC = () => {
   }, []);
 
   const connectToKitchen = (id: string) => {
-    const cleanId = id.trim().toUpperCase();
-    if (!cleanId) return;
-    
-    setIsSyncing(true);
-    setKitchenId(cleanId);
-    localStorage.setItem('mou_kitchen_id', cleanId);
-    
-    kitchenNode.current = gun.get('mou_cookbook_v2').get(cleanId);
+    try {
+      const cleanId = id.trim().toUpperCase();
+      if (!cleanId) return;
+      
+      setIsSyncing(true);
+      setKitchenId(cleanId);
+      localStorage.setItem('mou_kitchen_id', cleanId);
+      
+      kitchenNode.current = gun.get('mou_cookbook_v3').get(cleanId);
 
-    kitchenNode.current.get('recipes').map().on((data: any, key: string) => {
-      if (data === null) {
-        setRecipes(prev => prev.filter(r => r.id.toString() !== key));
-        return;
-      }
-      try {
-        const remoteRecipe: Recipe = typeof data === 'string' ? JSON.parse(data) : data;
-        setRecipes(prev => {
-          const exists = prev.find(r => r.id.toString() === key);
-          if (exists) {
-            if (JSON.stringify(exists) !== JSON.stringify(remoteRecipe)) {
-              return prev.map(r => r.id.toString() === key ? remoteRecipe : r);
-            }
-            return prev;
-          }
-          return [...prev, remoteRecipe];
-        });
-        setIsSyncing(false);
-      } catch (e) {
-        console.error("Sync parse error", e);
-      }
-    });
+      // 食譜同步
+      kitchenNode.current.get('recipes').map().on((data: any, key: string) => {
+        if (!key || key === '_' || key === 'undefined' || key === 'null') return;
+        
+        const numericId = Number(key);
+        if (isNaN(numericId)) return; // 關鍵：防止非數字 key 進入 state 導致白屏
 
-    kitchenNode.current.get('fridge').map().on((data: any, key: string) => {
-      if (data === null) {
-        setFridgeItems(prev => prev.filter(i => i.id.toString() !== key));
-        return;
-      }
-      try {
-        const remoteItem: FridgeItem = typeof data === 'string' ? JSON.parse(data) : data;
-        setFridgeItems(prev => {
-          const exists = prev.find(i => i.id.toString() === key);
-          if (exists) {
-            if (JSON.stringify(exists) !== JSON.stringify(remoteItem)) {
-              return prev.map(i => i.id.toString() === key ? remoteItem : i);
+        if (data === null) {
+          setRecipes(prev => prev.filter(r => r.id.toString() !== key));
+          return;
+        }
+        
+        try {
+          let remoteRecipe: any = typeof data === 'string' ? JSON.parse(data) : data;
+          
+          if (!remoteRecipe || typeof remoteRecipe !== 'object' || !remoteRecipe.title) return;
+          
+          remoteRecipe.ingredients = Array.isArray(remoteRecipe.ingredients) ? remoteRecipe.ingredients : [];
+          remoteRecipe.seasonings = Array.isArray(remoteRecipe.seasonings) ? remoteRecipe.seasonings : [];
+          remoteRecipe.steps = Array.isArray(remoteRecipe.steps) ? remoteRecipe.steps : [];
+          
+          const formattedRecipe: Recipe = { ...remoteRecipe, id: numericId };
+
+          setRecipes(prev => {
+            const exists = prev.find(r => r.id === numericId);
+            if (exists) {
+              if (JSON.stringify(exists) !== JSON.stringify(formattedRecipe)) {
+                return prev.map(r => r.id === numericId ? formattedRecipe : r);
+              }
+              return prev;
             }
-            return prev;
-          }
-          return [...prev, remoteItem];
-        });
-      } catch (e) {
-        console.error("Fridge sync error", e);
-      }
-    });
-    
-    setTimeout(() => setIsSyncing(false), 2000);
+            return [...prev, formattedRecipe];
+          });
+          setIsSyncing(false);
+        } catch (e) {
+          console.error("Recipe parse error", e);
+        }
+      });
+
+      // 冰箱同步
+      kitchenNode.current.get('fridge').map().on((data: any, key: string) => {
+        if (!key || key === '_' || key === 'undefined' || key === 'null') return;
+        
+        const numericId = Number(key);
+        if (isNaN(numericId)) return;
+
+        if (data === null) {
+          setFridgeItems(prev => prev.filter(i => i.id.toString() !== key));
+          return;
+        }
+        
+        try {
+          let remoteItem: any = typeof data === 'string' ? JSON.parse(data) : data;
+          if (!remoteItem || typeof remoteItem !== 'object' || !remoteItem.name) return;
+          
+          const formattedItem: FridgeItem = { ...remoteItem, id: numericId };
+          
+          setFridgeItems(prev => {
+            const exists = prev.find(i => i.id === numericId);
+            if (exists) {
+              if (JSON.stringify(exists) !== JSON.stringify(formattedItem)) {
+                return prev.map(i => i.id === numericId ? formattedItem : i);
+              }
+              return prev;
+            }
+            return [...prev, formattedItem];
+          });
+        } catch (e) {
+          console.error("Fridge parse error", e);
+        }
+      });
+      
+      // 2秒後自動結束同步動畫（防止空廚房無限旋轉）
+      setTimeout(() => setIsSyncing(false), 2000);
+    } catch (error) {
+      console.error("Kitchen connection fatal error", error);
+      setIsSyncing(false);
+      alert("連結廚房時發生錯誤，請重新整理頁面。");
+    }
   };
 
   useEffect(() => {
@@ -297,6 +331,7 @@ const App: React.FC = () => {
 
   const allFilteredRecipes = useMemo(() => {
     return recipes.filter(r => {
+      if (!r || !r.title) return false;
       const isFavPage = currentPage === Page.Favorites;
       const matchFav = isFavPage ? r.isFavorite : true;
       const matchCat = (selectedCategory === '目錄' || r.category === selectedCategory);
@@ -440,7 +475,6 @@ const App: React.FC = () => {
     if (!file) return;
 
     if (target === 'ai') {
-      // AI 辨識：直接讀取完整檔案，不經裁切
       setIsParsing(true);
       const reader = new FileReader();
       reader.onload = async (event) => {
@@ -463,7 +497,6 @@ const App: React.FC = () => {
       };
       reader.readAsDataURL(file);
     } else {
-      // 封面圖片：保留裁切步驟，確保 UI 美觀
       const reader = new FileReader();
       reader.onload = (event) => {
         setCroppingImage(event.target?.result as string);
@@ -604,7 +637,7 @@ const App: React.FC = () => {
                              {editingFridgeId === item.id ? (
                                <input autoFocus value={editingValue} onChange={e => setEditingValue(e.target.value)} onBlur={() => handleUpdateFridgeItem(item.id)} onKeyDown={e => e.key === 'Enter' && handleUpdateFridgeItem(item.id)} className="text-[13px] font-bold text-gray-700 bg-amber-50/50 outline-none px-2 py-0.5 rounded border border-amber-100 w-full max-w-[200px]" />
                              ) : (
-                               <span onClick={() => { setEditingFridgeId(item.id); setEditingValue(item.name); }} className="text-[13px] font-bold text-gray-600 cursor-text hover:text-amber-800 transition-colors flex-1">{item.name}</span>
+                               <span onClick={() => { setEditingFridgeId(item.id); setEditingValue(item.name); }} className="text-[13px] font-bold text-gray-600 cursor-text hover:text-amber-800 transition-colors flex-1">{item.name || ''}</span>
                              )}
                            </div>
                            <button onClick={() => handleDeleteFridgeItem(item.id)} className="text-gray-200 hover:text-red-400 transition-colors active-push text-[10px] p-1 ml-2">✕</button>
@@ -792,7 +825,6 @@ const App: React.FC = () => {
             <button onClick={() => setIsAIModalOpen(false)} className="absolute right-8 top-8 text-2xl text-gray-300">×</button>
             <h2 className="text-xl font-black mb-6">✨ AI 智慧解析</h2>
             
-            {/* 隱藏的輸入項 */}
             <input type="file" accept="image/*" ref={aiImageInputRef} className="hidden" onChange={e => onImageSelected(e, 'ai')} />
             <input type="file" accept="image/*" capture="environment" ref={aiCameraInputRef} className="hidden" onChange={e => onImageSelected(e, 'ai')} />
             
