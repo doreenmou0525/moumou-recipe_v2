@@ -512,7 +512,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex flex-col items-center text-center cursor-pointer flex-1 px-4" onClick={() => { setCurrentPage(Page.Home); setSelectedCategory('目錄'); setSelectedRecipe(null); }}>
           <h1 className="text-lg font-black text-[#5d534a] tracking-[0.2em] leading-tight">牟牟的食譜帳</h1>
-          <span className="text-[8px] font-bold text-amber-600/60 tracking-widest uppercase text-center">MOU CHES COOKBOOK</span>
+          <span className="text-[8px] font-bold text-amber-600/60 tracking-widest uppercase text-center">MOU CHEF'S COOKBOOK</span>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setIsSyncModalOpen(true)} className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-gray-50 active-push transition-all">

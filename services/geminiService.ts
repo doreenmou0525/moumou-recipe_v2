@@ -1,8 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 const SYSTEM_PROMPT = `你是一個專業的日系食譜整理師。
 請將輸入的內容（文字、網址或圖片）轉換為結構化食譜 JSON。
 category 只能是以下之一：'西式', '東式', '湯品', '烘焙', '其他'。
@@ -25,9 +23,14 @@ const SCHEMA = {
   required: ["title", "category", "ingredients", "steps"],
 };
 
+const cleanResponse = (text: string) => {
+  return text.replace(/```json/g, '').replace(/```/g, '').trim();
+};
+
 export const parseRecipeWithAI = async (input: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: [{ parts: [{ text: `請分析此食譜內容或網址：${input}` }] }],
     config: {
       systemInstruction: SYSTEM_PROMPT,
@@ -35,23 +38,34 @@ export const parseRecipeWithAI = async (input: string) => {
       responseSchema: SCHEMA,
     },
   });
-  return JSON.parse(response.text || '{}');
+  
+  try {
+    return JSON.parse(response.text || '{}');
+  } catch (e) {
+    return JSON.parse(cleanResponse(response.text || '{}'));
+  }
 };
 
 export const parseRecipeFromImage = async (base64Data: string, mimeType: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: [{ 
+    model: 'gemini-3-flash-preview',
+    contents: { 
       parts: [
         { inlineData: { data: base64Data, mimeType: mimeType } },
         { text: "請精準辨識這張照片中的食譜內容。" }
       ] 
-    }],
+    },
     config: {
       systemInstruction: SYSTEM_PROMPT,
       responseMimeType: "application/json",
       responseSchema: SCHEMA,
     },
   });
-  return JSON.parse(response.text || '{}');
+
+  try {
+    return JSON.parse(response.text || '{}');
+  } catch (e) {
+    return JSON.parse(cleanResponse(response.text || '{}'));
+  }
 };
